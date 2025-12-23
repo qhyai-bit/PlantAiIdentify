@@ -4,6 +4,18 @@ spring:
     url: jdbc:mysql://localhost:3306/pai
     username: root
     password: 1234
+
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      lettuce:
+        pool:
+          max-active: 20
+          max-idle: 20
+          max-wait: 2000
+          min-idle: 10
 # Knife4j 增强配置
 knife4j:
   enable: true

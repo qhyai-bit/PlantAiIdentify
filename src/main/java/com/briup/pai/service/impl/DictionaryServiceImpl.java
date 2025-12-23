@@ -17,18 +17,24 @@ import com.briup.pai.entity.vo.DropDownVO;
 import com.briup.pai.entity.vo.PageVO;
 import com.briup.pai.service.IDictionaryService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Objects;
 
 @Service
+@CacheConfig(cacheNames = DictionaryConstant.DICTIONARY_CACHE_PREFIX)// 缓存配置(添加统一的前缀名称)
 public class DictionaryServiceImpl extends ServiceImpl<DictionaryMapper, Dictionary> implements IDictionaryService {
     @Autowired
     DictionaryMapper dictionaryMapper;
     @Autowired
     DictionaryConvert dictionaryConvert;
     @Override
+    @CachePut(key = "#result.dictId")// 返回的数据缓存
     public DictionaryEchoVO addOrModifyDictionary(DictionarySaveDTO dto) {
         // 从dto中获取信息
         Integer dictId = dto.getDictId();
@@ -82,6 +88,7 @@ public class DictionaryServiceImpl extends ServiceImpl<DictionaryMapper, Diction
     }
 
     @Override
+    @Cacheable(key = "#p0")// 这里用的是索引参数
     public DictionaryEchoVO getDictionaryById(Integer dictionaryId) {
         // 验证一下该dictionary一定存在
         // 根据id查询信息
@@ -95,6 +102,7 @@ public class DictionaryServiceImpl extends ServiceImpl<DictionaryMapper, Diction
     }
 
     @Override
+    @CacheEvict(allEntries = true)// 当前service中添加了多个缓存，所以这里全部的
     public void removeDictionaryById(Integer dictionaryId) {
         // 验证一下该dictionary一定存在
         Dictionary dictionary = BriupAssert.requireNotNull(
@@ -149,6 +157,13 @@ public class DictionaryServiceImpl extends ServiceImpl<DictionaryMapper, Diction
     }
 
     @Override
+    /**
+     * 使用缓存注解，根据字典编码获取下拉列表数据
+     * 缓存key为字典常量前缀 + ':' + 字典编码
+     * 只有当结果不为null时才进行缓存
+     */
+    @Cacheable(key = "T(com.briup.pai.common.constant.CommonConstant).DROPDOWN_CACHE_PREFIX + ':' + #dictCode",
+                condition = "#result != null")
     public List<DropDownVO> getDropDownList(String dictCode) {
         // 验证dictionary必须存在
         Dictionary dictionary = BriupAssert.requireNotNull(

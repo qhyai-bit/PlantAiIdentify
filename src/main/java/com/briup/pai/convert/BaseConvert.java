@@ -1,5 +1,6 @@
 package com.briup.pai.convert;
 
+import com.briup.pai.common.utils.SecurityUtil;
 import org.mapstruct.Mapper;
 import org.mapstruct.factory.Mappers;
 
@@ -15,7 +16,7 @@ public interface BaseConvert {
 
     // 获取创建用户Id
     default Integer getCreateUserId() {
-        return 0;
+        return SecurityUtil.getUserId();
     }
 
     // 获取数据字典值

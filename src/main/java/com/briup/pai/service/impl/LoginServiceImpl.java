@@ -1,10 +1,13 @@
 package com.briup.pai.service.impl;
 
+import cn.hutool.core.util.RandomUtil;
 import com.briup.pai.common.constant.LoginConstant;
 import com.briup.pai.common.enums.ResultCodeEnum;
 import com.briup.pai.common.enums.UserStatusEnum;
 import com.briup.pai.common.exception.BriupAssert;
 import com.briup.pai.common.utils.JwtUtil;
+import com.briup.pai.common.utils.MessageUtil;
+import com.briup.pai.common.utils.RedisUtil;
 import com.briup.pai.common.utils.SecurityUtil;
 import com.briup.pai.convert.UserConvert;
 import com.briup.pai.entity.dto.LoginWithPhoneDTO;
@@ -27,6 +30,8 @@ public class LoginServiceImpl implements ILoginService {
     private UserServiceImpl userService;
     @Autowired
     private UserConvert userConvert;
+    @Autowired
+    private RedisUtil redisUtil;
 
     @Override
     public String loginWithUsername(LoginWithUsernameDTO dto) {
@@ -68,11 +73,58 @@ public class LoginServiceImpl implements ILoginService {
 
     @Override
     public void sendMessageCode(String telephone) {
-
+        // 设置验证码在redis存储的时间和key
+        String key = LoginConstant.USER_SMS_VERIFY_CODE_PREFIX + telephone;
+        int expirationTime = LoginConstant.USER_SMS_VERIFY_CODE_EXPIRATION_TIME;
+        // 验证手机号有效：用户存在、用户不禁用、该手机号在redis中没有保存的验证码
+        User user = BriupAssert.requireNotNull(
+                userService,
+                User::getTelephone,
+                telephone,
+                ResultCodeEnum.USER_NOT_EXIST);
+        BriupAssert.requireEqual(
+                UserStatusEnum.AVAILABLE.getStatus(),
+                user.getStatus(),
+                ResultCodeEnum.USER_IS_DISABLED);
+        BriupAssert.requireFalse(
+                redisUtil.exists(key),
+                ResultCodeEnum.USER_VERIFY_CODE_ALREADY_EXIST);
+        // 生成验证码(四位数字)
+        int code = RandomUtil.randomInt(1000, 9999);
+        // 发送短信
+        MessageUtil.sendMessage(telephone, code);
+        // 保存到Redis中
+        redisUtil.set(key,code, expirationTime);
     }
 
     @Override
     public String loginWithTelephone(LoginWithPhoneDTO dto) {
-        return "";
+        // 获取数据
+        String telephone = dto.getTelephone();
+        Integer code = dto.getCode();
+        String key = LoginConstant.USER_SMS_VERIFY_CODE_PREFIX + telephone;
+        // 校验数据：用户必须存在、用户不能被禁用、验证码必须存在、验证码比对有效
+        User user = BriupAssert.requireNotNull(
+                userService,
+                User::getTelephone,
+                telephone,
+                ResultCodeEnum.USER_NOT_EXIST);
+        BriupAssert.requireEqual(
+                UserStatusEnum.AVAILABLE.getStatus(),
+                user.getStatus(),
+                ResultCodeEnum.USER_IS_DISABLED);
+        BriupAssert.requireTrue(
+                redisUtil.exists(key),
+                ResultCodeEnum.USER_VERIFY_CODE_NOT_EXIST);
+        BriupAssert.requireEqual(
+                redisUtil.get(key),
+                code,
+                ResultCodeEnum.USER_VERIFY_CODE_ERROR);
+        // 意味着登录成功，从redis中删除验数据
+        redisUtil.delete(key);
+        // 根据userId生成Jwt字符串返回
+        Map<String,Object> claims = new HashMap<>();
+        claims.put(LoginConstant.JWT_PAYLOAD_KEY,user.getId());
+        return JwtUtil.generateJwt(claims);
     }
 }

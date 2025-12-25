@@ -1,6 +1,8 @@
 package com.briup.pai.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.briup.pai.common.enums.ResultCodeEnum;
+import com.briup.pai.common.exception.BriupAssert;
 import com.briup.pai.dao.UserMapper;
 import com.briup.pai.entity.dto.UserSaveDTO;
 import com.briup.pai.entity.po.User;
@@ -16,7 +18,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
 
     @Override
     public String getUsernameById(Integer userId) {
-        return "";
+        // 判断用户一定存在
+        return BriupAssert.requireNotNull(
+                this,
+                User::getId,
+                userId,
+                ResultCodeEnum.USER_NOT_EXIST).getUsername();
     }
 
     @Override

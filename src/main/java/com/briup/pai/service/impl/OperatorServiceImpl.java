@@ -23,7 +23,7 @@ import com.briup.pai.entity.vo.PageVO;
 import com.briup.pai.service.IOperatorService;
 import org.springframework.aop.framework.AopContext;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -43,6 +43,7 @@ public class OperatorServiceImpl extends ServiceImpl<OperatorMapper, Operator> i
 
     @Override
     @Transactional
+    @CacheEvict(key = "T(com.briup.pai.common.constant.CommonConstant).DROPDOWN_CACHE_PREFIX")
     public void importOperator(MultipartFile file) {
         // 校验数据 file必须是excel文件
         BriupAssert.requireExcel(file);
@@ -103,6 +104,7 @@ public class OperatorServiceImpl extends ServiceImpl<OperatorMapper, Operator> i
     }
 
     @Override
+    @Cacheable(key = "#operatorId")
     public OperatorEchoVO getOperatorById(Integer operatorId) {
         // 验证id是否存在
         Operator operator = BriupAssert.requireNotNull(
@@ -115,6 +117,9 @@ public class OperatorServiceImpl extends ServiceImpl<OperatorMapper, Operator> i
     }
 
     @Override
+    @Transactional
+    @CachePut(key = "#dto.operatorId")
+    @CacheEvict(key = "T(com.briup.pai.common.constant.CommonConstant).DROPDOWN_CACHE_PREFIX")
     public OperatorEchoVO modifyOperatorById(OperatorUpdateDTO dto) {
         // 算子必须存在
         BriupAssert.requireNotNull(
@@ -138,6 +143,10 @@ public class OperatorServiceImpl extends ServiceImpl<OperatorMapper, Operator> i
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(key = "#operatorId"),
+            @CacheEvict(key = "T(com.briup.pai.common.constant.CommonConstant).DROPDOWN_CACHE_PREFIX")
+    })
     public void removeOperatorById(Integer operatorId) {
         // 验证operatorId一定存在，如果不存在则抛出异常
         BriupAssert.requireNotNull(
@@ -151,12 +160,14 @@ public class OperatorServiceImpl extends ServiceImpl<OperatorMapper, Operator> i
 
     @Override
     @Transactional
+    @CacheEvict(allEntries = true)
     public void removeOperatorByIds(List<Integer> ids) {
         // 批量删除
         this.removeBatchByIds(ids);
     }
 
     @Override
+    @Cacheable(key = "T(com.briup.pai.common.constant.CommonConstant).DROPDOWN_CACHE_PREFIX")
     public Map<Integer, List<DropDownVO>> getOperatorDropDownList() {
         Map<Integer, List<DropDownVO>> map = new HashMap<>();
         // 接口要求数据全部返回，做页面刷新用

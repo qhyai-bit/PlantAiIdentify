@@ -26,3 +26,11 @@ knife4j:
     enable-footer: false
     enable-footer-custom: true
     footer-custom-content: 'Apache License 2.0 | Copyright  2025 - [杰普软件科技有限公司]'
+
+
+# 自定义上传配置
+upload:
+  nginx-file-path: D:\develop\251217-PlantAiIdentify\pai-file-nginx\html
+  nginx-server: http://localhost:8999
+  file-directory-name: file
+  chunk-directory-name: chunk

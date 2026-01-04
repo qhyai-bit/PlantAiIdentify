@@ -1,5 +1,6 @@
 package com.briup.pai.service.impl;
 
+import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -16,9 +17,11 @@ import com.briup.pai.service.IClassifyService;
 import com.briup.pai.service.IDatasetService;
 import com.briup.pai.service.IEntityService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,6 +34,9 @@ public class DatasetServiceImpl extends ServiceImpl<DatasetMapper, Dataset> impl
     private IClassifyService classifyService;
     @Autowired
     private IEntityService entityService;
+
+    @Value("${upload.nginx-file-path}")
+    private String nginxFilePath;
 
     @Override
     public PageVO<DatasetPageVO> getDatasetByPageAndCondition(Long pageNum, Long pageSize, String datasetName, Integer datasetType) {
@@ -146,7 +152,9 @@ public class DatasetServiceImpl extends ServiceImpl<DatasetMapper, Dataset> impl
                     .stream().map(EntityInClassifyVO::getEntityId).toList());
         }
         entityService.removeBatchByIds(entityIds);
-        // TODO 同步删除文件服务器存放该数据集的文件夹（后续完成）
+        // 同步删除文件服务器存放该数据集的文件夹
+        File file = new File(nginxFilePath + "/" + datasetId);
+        FileUtil.del(file);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.briup.pai.service.impl;
 
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.briup.pai.common.constant.AuthConstant;
 import com.briup.pai.common.enums.ResultCodeEnum;
 import com.briup.pai.common.exception.BriupAssert;
 import com.briup.pai.dao.UserMapper;
@@ -10,13 +11,17 @@ import com.briup.pai.entity.vo.PageVO;
 import com.briup.pai.entity.vo.UserEchoVO;
 import com.briup.pai.entity.vo.UserPageVO;
 import com.briup.pai.service.IUserService;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 @Service
+@CacheConfig(cacheNames = AuthConstant.USER_CACHE_PREFIX)
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
 
     @Override
+    @Cacheable(key = "T(com.briup.pai.common.constant.AuthConstant).CREATE_USERNAME_CACHE_PREFIX+#userId")
     public String getUsernameById(Integer userId) {
         // 判断用户一定存在
         return BriupAssert.requireNotNull(

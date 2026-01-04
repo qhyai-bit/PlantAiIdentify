@@ -186,8 +186,14 @@ public class DictionaryServiceImpl extends ServiceImpl<DictionaryMapper, Diction
     }
 
     @Override
+    @Cacheable(key = "T(com.briup.pai.common.constant.DictionaryConstant).DICTIONARY_VALUE_CACHE_PREFIX+#dictionaryId")
     public String getDictionaryValueById(Integer dictionaryId) {
-        return "";
+        return BriupAssert.requireNotNull(
+                this,
+                Dictionary::getId,
+                dictionaryId,
+                ResultCodeEnum.DATA_NOT_EXIST
+        ).getDictValue();
     }
 
     // --------------- 以下方法为完善逻辑的私有方法

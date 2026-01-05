@@ -31,6 +31,6 @@ knife4j:
 # 自定义上传配置
 upload:
   nginx-file-path: D:\develop\251217-PlantAiIdentify\pai-file-nginx\html
-  nginx-server: http://localhost:8999
+  nginx-server: http://localhost:89/
   file-directory-name: file
   chunk-directory-name: chunk

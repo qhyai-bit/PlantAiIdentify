@@ -4,6 +4,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.briup.pai.common.constant.DatasetConstant;
 import com.briup.pai.common.enums.ResultCodeEnum;
 import com.briup.pai.common.exception.BriupAssert;
 import com.briup.pai.convert.ClassifyConvert;
@@ -17,6 +18,7 @@ import com.briup.pai.service.IClassifyService;
 import com.briup.pai.service.IEntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +26,7 @@ import java.io.File;
 import java.util.List;
 
 @Service
+@CacheConfig(cacheNames = DatasetConstant.DATASET_CACHE_PREFIX)
 public class ClassifyServiceImpl extends ServiceImpl<ClassifyMapper, Classify> implements IClassifyService {
 
     @Autowired
@@ -53,6 +56,8 @@ public class ClassifyServiceImpl extends ServiceImpl<ClassifyMapper, Classify> i
 
     @Override
     @Transactional
+    @CachePut(key = "T(com.briup.pai.common.constant.DatasetConstant).DATASET_CLASSIFY_CACHE_PREFIX+':'+#result.classifyId")
+    @CacheEvict(key = "T(com.briup.pai.common.constant.CommonConstant).DETAIL_CACHE_PREFIX+':'+#dto.getDatasetId()")
     public ClassifyEchoVO addOrModifyClassify(ClassifySaveDTO dto) {
         // 获取分类信息参数
         Integer classifyId = dto.getClassifyId();
@@ -112,6 +117,10 @@ public class ClassifyServiceImpl extends ServiceImpl<ClassifyMapper, Classify> i
 
     @Override
     @Transactional
+    @Caching(evict ={
+        @CacheEvict(key = "T(com.briup.pai.common.constant.DatasetConstant).DATASET_CLASSIFY_CACHE_PREFIX+':'+#result.classifyId"),
+        @CacheEvict(key = "T(com.briup.pai.common.constant.CommonConstant).DETAIL_CACHE_PREFIX+':'+#datasetId")
+    })
     public void removeClassifyById(Integer datasetId, Integer classifyId) {
         // 数据校验： 分类必须存在，数据集id必须一致
         Classify classify = BriupAssert.requireNotNull(
@@ -137,6 +146,7 @@ public class ClassifyServiceImpl extends ServiceImpl<ClassifyMapper, Classify> i
     }
 
     @Override
+    @Cacheable(key = "T(com.briup.pai.common.constant.DatasetConstant).DATASET_CLASSIFY_CACHE_PREFIX+':'+#classifyId")
     public ClassifyEchoVO getClassifyById(Integer classifyId) {
         // 根据分类ID查询分类信息，如果不存在则抛出异常
         return classifyConvert.po2ClassifyEchoVO(BriupAssert.requireNotNull(

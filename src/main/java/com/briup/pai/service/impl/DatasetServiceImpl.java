@@ -5,6 +5,7 @@ import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.briup.pai.common.constant.DatasetConstant;
 import com.briup.pai.common.enums.DatasetStatusEnum;
 import com.briup.pai.common.enums.ResultCodeEnum;
 import com.briup.pai.common.exception.BriupAssert;
@@ -18,14 +19,17 @@ import com.briup.pai.service.IDatasetService;
 import com.briup.pai.service.IEntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
+import java.security.Key;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@CacheConfig(cacheNames = DatasetConstant.DATASET_CACHE_PREFIX)
 public class DatasetServiceImpl extends ServiceImpl<DatasetMapper, Dataset> implements IDatasetService {
 
     @Autowired
@@ -72,6 +76,9 @@ public class DatasetServiceImpl extends ServiceImpl<DatasetMapper, Dataset> impl
 
     @Override
     @Transactional
+    @CachePut(key = "#result.datasetId")
+    @CacheEvict(key = "T(com.briup.pai.common.constant.CommonConstant).DETAIL_CACHE_PREFIX+':'+#dto.getDatasetId()",
+    condition = "#dto.getDatasetId() != null")
     public DatasetEchoVO addOrModifyDataset(DatasetSaveDTO dto) {
         Integer datasetId = dto.getDatasetId();
         Dataset dataset = null;
@@ -119,6 +126,7 @@ public class DatasetServiceImpl extends ServiceImpl<DatasetMapper, Dataset> impl
     }
 
     @Override
+    @Cacheable(key = "#datasetId")
     public DatasetEchoVO modifyDatasetFeedback(Integer datasetId) {
         return datasetConvert.po2DatasetEchoVO(BriupAssert.requireNotNull(
                 this,
@@ -130,6 +138,10 @@ public class DatasetServiceImpl extends ServiceImpl<DatasetMapper, Dataset> impl
 
     @Override
     @Transactional
+    @Caching(evict = {
+        @CacheEvict(key = "#datasetId"),
+        @CacheEvict(key = "T(com.briup.pai.common.constant.CommonConstant).DETAIL_CACHE_PREFIX+':'+#datasetId")
+    })
     public void removeDatasetById(Integer datasetId) {
         Dataset dataset = BriupAssert.requireNotNull(
                 this,
@@ -158,6 +170,7 @@ public class DatasetServiceImpl extends ServiceImpl<DatasetMapper, Dataset> impl
     }
 
     @Override
+    @Cacheable(key = "T(com.briup.pai.common.constant.CommonConstant).DETAIL_CACHE_PREFIX+':'+#datasetId")
     public DatasetDetailVO getDatasetDetail(Integer datasetId) {
         Dataset dataset = BriupAssert.requireNotNull(
                 this,

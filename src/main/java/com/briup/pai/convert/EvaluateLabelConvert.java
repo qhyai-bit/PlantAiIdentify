@@ -6,6 +6,8 @@ import com.briup.pai.entity.vo.ModelOperationResultVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
+import java.util.List;
+
 @Mapper(componentModel = "spring")
 public interface EvaluateLabelConvert {
 
@@ -16,4 +18,5 @@ public interface EvaluateLabelConvert {
 
     // Evaluate -> ModelOperationResultVO
     ModelOperationResultVO po2ModelOperationResultVO(EvaluateLabel evaluate);
+    List<ModelOperationResultVO> po2ModelOperationResultVOList(List<EvaluateLabel> evaluate);
 }

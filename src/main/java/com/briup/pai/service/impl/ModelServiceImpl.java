@@ -19,10 +19,12 @@ import com.briup.pai.entity.po.*;
 import com.briup.pai.entity.vo.*;
 import com.briup.pai.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.*;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -41,6 +43,7 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
     @Autowired
     private ITrainingDatasetService trainingDatasetService;
     @Autowired
+    @Lazy
     private IDatasetService datasetService;
     @Autowired
     private ITrainingLabelService trainingLabelService;
@@ -72,6 +75,7 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
     }
 
     @Override
+    @Cacheable(key = "#modelId")
     public ModelEchoVO getModelById(Integer modelId) {
         // 根据模型ID查询模型信息，如果不存在则抛出异常
         Model model = BriupAssert.requireNotNull(
@@ -86,6 +90,7 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
 
     @Override
     @Transactional
+    @CachePut(key = "#result.getModelId()")
     public ModelEchoVO addAndModifyModel(ModelSaveDTO modelSaveDTO) {
         Integer modelId = modelSaveDTO.getModelId();
         Model model;
@@ -130,6 +135,10 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
 
     @Override
     @Transactional
+    @Caching(evict = {
+            @CacheEvict(key = "#modelId"),
+            @CacheEvict(key = "T(com.briup.pai.common.constant.CommonConstant).DETAIL_CACHE_PREFIX+':'+#modelId")
+    })
     public void removeModelById(Integer modelId) {
         // 根据ID查询模型，如果不存在则抛出异常
         Model model = BriupAssert.requireNotNull(
@@ -150,6 +159,7 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
 
     @Override
     @Transactional
+    @Cacheable(key = "T(com.briup.pai.common.constant.CommonConstant).DETAIL_CACHE_PREFIX+':'+#modelId")
     public ModelDetailVO getModelDetailById(Integer modelId) {
         // 根据ID查询模型信息，如果不存在则抛出异常
         Model model = BriupAssert.requireNotNull(
@@ -235,6 +245,22 @@ public class ModelServiceImpl extends ServiceImpl<ModelMapper, Model> implements
 
     @Override
     public List<Integer> getDatasetIdsUsed() {
-        return List.of();
+        // 获取所有正在使用的数据集ID，包括训练和评估过程中使用的数据集
+        List<Integer> datasetIdUsedList = new ArrayList<>();
+        
+        // 获取训练过程中使用的数据集ID列表
+        List<Integer> trainingDatasetIds = trainingDatasetService.list().stream()
+                .map(TrainingDataset::getDatasetId)
+                .toList();
+        
+        // 获取评估过程中使用的数据集ID列表
+        List<Integer> evaluateDatasetIds = evaluateService.list().stream()
+                .map(Evaluate::getDatasetId)
+                .toList();
+        
+        // 合并两个列表，得到所有已使用的数据集ID
+        datasetIdUsedList.addAll(trainingDatasetIds);
+        datasetIdUsedList.addAll(evaluateDatasetIds);
+        return datasetIdUsedList;
     }
 }

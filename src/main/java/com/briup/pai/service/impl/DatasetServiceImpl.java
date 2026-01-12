@@ -17,6 +17,7 @@ import com.briup.pai.entity.vo.*;
 import com.briup.pai.service.IClassifyService;
 import com.briup.pai.service.IDatasetService;
 import com.briup.pai.service.IEntityService;
+import com.briup.pai.service.IModelService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.*;
@@ -24,7 +25,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.File;
-import java.security.Key;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +38,8 @@ public class DatasetServiceImpl extends ServiceImpl<DatasetMapper, Dataset> impl
     private IClassifyService classifyService;
     @Autowired
     private IEntityService entityService;
+    @Autowired
+    private IModelService modelService;
 
     @Value("${upload.nginx-file-path}")
     private String nginxFilePath;
@@ -149,7 +151,12 @@ public class DatasetServiceImpl extends ServiceImpl<DatasetMapper, Dataset> impl
                 datasetId,
                 ResultCodeEnum.DATA_NOT_EXIST
         );
-        // TODO 当数据集用于模型的训练、评估、优化的话，不能删除（后续完成）
+        // 当数据集用于模型的训练、评估、优化的话，不能删除
+        BriupAssert.requireNotIn(
+                datasetId,
+                modelService.getDatasetIdsUsed(),
+                ResultCodeEnum.DATA_CAN_NOT_DELETE
+        );
 
         // 删除数据集
         this.removeById(datasetId);

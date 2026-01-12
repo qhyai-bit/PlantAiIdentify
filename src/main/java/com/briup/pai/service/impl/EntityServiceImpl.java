@@ -19,6 +19,7 @@ import com.briup.pai.entity.vo.PageVO;
 import com.briup.pai.service.IClassifyService;
 import com.briup.pai.service.IDatasetService;
 import com.briup.pai.service.IEntityService;
+import com.briup.pai.service.IModelService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheConfig;
@@ -41,6 +42,8 @@ public class EntityServiceImpl extends ServiceImpl<EntityMapper, Entity> impleme
     @Autowired
     @Lazy
     private IDatasetService datasetService;
+    @Autowired
+    private IModelService modelService;
 
     @Value("${upload.nginx-server}")
     private String nginxServer;
@@ -114,6 +117,12 @@ public class EntityServiceImpl extends ServiceImpl<EntityMapper, Entity> impleme
                 dataset.getId(),
                 classify.getDatasetId(),
                 ResultCodeEnum.PARAM_IS_ERROR
+        );
+        // 检查数据集是否正在被模型使用，如果正在使用则不允许删除
+        BriupAssert.requireNotIn(
+                datasetId,
+                modelService.getDatasetIdsUsed(),
+                ResultCodeEnum.DATA_CAN_NOT_DELETE
         );
         // 删除对应的文件
         // 先获取所有需要删除的文件的存储路径

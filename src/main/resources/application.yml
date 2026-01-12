@@ -32,3 +32,26 @@ mybatis-plus:
       logic-delete-field: isDeleted
       logic-not-delete-value: 0
       logic-delete-value: 1
+
+# mq自定义配置
+mq:
+  init:
+    exchange: init.exchange
+    send-routing-key: init.send.key
+    result-queue: init.result.queue
+    result-routing-key: init.result.key
+  optimize:
+    exchange: optimize.exchange
+    send-routing-key: optimize.send.key
+    result-queue: optimize.result.queue
+    result-routing-key: optimize.result.key
+  evaluate:
+    exchange: evaluate.exchange
+    send-routing-key: evaluate.send.key
+    result-queue: evaluate.result.queue
+    result-routing-key: evaluate.result.key
+  release:
+    exchange: release.exchange
+    send-routing-key: release.send.key
+    result-queue: release.result.queue
+    result-routing-key: release.result.key

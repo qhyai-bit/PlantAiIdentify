@@ -16,6 +16,7 @@ import com.briup.pai.entity.vo.ClassifyInDatasetVO;
 import com.briup.pai.entity.vo.EntityInClassifyVO;
 import com.briup.pai.service.IClassifyService;
 import com.briup.pai.service.IEntityService;
+import com.briup.pai.service.IModelService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.*;
@@ -33,6 +34,8 @@ public class ClassifyServiceImpl extends ServiceImpl<ClassifyMapper, Classify> i
     private ClassifyConvert classifyConvert;
     @Autowired
     private IEntityService entityService;
+    @Autowired
+    private IModelService modelService;
 
     @Value("${upload.nginx-file-path}")
     private String nginxFilePath;
@@ -133,6 +136,12 @@ public class ClassifyServiceImpl extends ServiceImpl<ClassifyMapper, Classify> i
                 classify.getDatasetId(),
                 datasetId,
                 ResultCodeEnum.DATA_NOT_EXIST
+        );
+        // 检查数据集是否正在被模型使用，如果正在使用则不允许删除分类
+        BriupAssert.requireNotIn(
+                datasetId,
+                modelService.getDatasetIdsUsed(),
+                ResultCodeEnum.DATA_CAN_NOT_DELETE
         );
         // 删除实体及实体下的分类信息
         this.removeById(classifyId);

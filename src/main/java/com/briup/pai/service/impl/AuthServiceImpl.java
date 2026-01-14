@@ -245,7 +245,18 @@ public class AuthServiceImpl implements IAuthService {
 
     @Override
     public List<String> getUserButtonPermissionList(Integer userId) {
-        return List.of();
+        List<String> permissionList = new ArrayList<>();
+        // 获取当前登录用户的角色列表
+        this.getRoleIdsByUserId(userId).forEach(roleId -> {
+            // 根据角色ID获取该角色拥有的按钮权限ID列表
+            List<String> buttonPermissions = this.getPermissionIdsByRoleId(roleId)
+                    .stream()
+                    .map(permissionId -> permissionService.getById(permissionId).getPerm())
+                    .toList();
+            // 将按钮权限添加到结果列表中
+            permissionList.addAll(buttonPermissions);
+        });
+        return permissionList;
     }
 
     /**

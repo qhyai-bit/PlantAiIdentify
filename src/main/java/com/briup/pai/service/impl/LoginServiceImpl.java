@@ -14,6 +14,7 @@ import com.briup.pai.entity.dto.LoginWithPhoneDTO;
 import com.briup.pai.entity.dto.LoginWithUsernameDTO;
 import com.briup.pai.entity.po.User;
 import com.briup.pai.entity.vo.CurrentLoginUserVO;
+import com.briup.pai.service.IAuthService;
 import com.briup.pai.service.ILoginService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,8 @@ public class LoginServiceImpl implements ILoginService {
 
     @Autowired
     private UserServiceImpl userService;
+    @Autowired
+    private IAuthService authService;
     @Autowired
     private UserConvert userConvert;
     @Autowired
@@ -65,10 +68,19 @@ public class LoginServiceImpl implements ILoginService {
 
     @Override
     public CurrentLoginUserVO getCurrentUser() {
-        // ThreadLocal 来获取当前登录用户的信息
-        Integer userId = SecurityUtil.getUserId();// 获取当前登录用户ID
-        User user = userService.getById(userId);// 查询当前登录用户
-        return userConvert.po2CurrentLoginUserVO(user);// 转换对象返回（此处先不考虑路由和权限信息，只获取用户基本信息）
+        // 通过ThreadLocal获取当前登录用户信息
+        // 后续版本，加上了menu和button
+        // 获取当前登录用户ID
+        Integer userId = SecurityUtil.getUserId();
+        // 根据用户ID查询用户信息
+        User user = userService.getById(userId);
+        // 将用户实体转换为当前登录用户视图对象
+        CurrentLoginUserVO currentLoginUserVO = userConvert.po2CurrentLoginUserVO(user);
+        // 设置用户的菜单权限（用于前端动态路由）
+        currentLoginUserVO.setMenu(authService.getRouter(userId));
+        // 设置用户的按钮权限（用于前端按钮级权限控制）
+        currentLoginUserVO.setButtons(authService.getUserButtonPermissionList(userId));
+        return currentLoginUserVO;
     }
 
     @Override

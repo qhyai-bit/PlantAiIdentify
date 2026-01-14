@@ -38,7 +38,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Service
-@CacheConfig(cacheNames = AuthConstant.USER_CACHE_PREFIX)
+@CacheConfig(cacheNames = AuthConstant.AUTH_CACHE_PREFIX)
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IUserService {
 
     @Autowired
@@ -181,6 +181,13 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
     @Override
     @Caching(evict = {
             @CacheEvict(key = "#userId"),
+            @CacheEvict(key = "T(com.briup.pai.common.constant.AuthConstant).CREATE_USERNAME_CACHE_PREFIX + ':' + #userId"),
+    @CacheEvict(cacheNames = AuthConstant.AUTH_CACHE_PREFIX,
+            key = "T(com.briup.pai.common.constant.AuthConstant).USER_ROLE_CACHE_PREFIX + ':' + #userId"),
+    @CacheEvict(cacheNames = AuthConstant.AUTH_CACHE_PREFIX,
+            key = "T(com.briup.pai.common.constant.AuthConstant).ROUTER_CACHE_PREFIX + ':' + #userId"),
+    @CacheEvict(cacheNames = AuthConstant.AUTH_CACHE_PREFIX,
+            key = "T(com.briup.pai.common.constant.AuthConstant).BUTTON_CACHE_PREFIX + ':' + #userId")
     })
     public void removeUserById(Integer userId) {
         // 不能删自己，删除的用户必须存在

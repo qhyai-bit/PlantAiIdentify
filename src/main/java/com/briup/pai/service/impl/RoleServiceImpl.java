@@ -3,6 +3,7 @@ package com.briup.pai.service.impl;
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.briup.pai.common.constant.AuthConstant;
 import com.briup.pai.common.enums.ResultCodeEnum;
 import com.briup.pai.common.exception.BriupAssert;
 import com.briup.pai.convert.RoleConvert;
@@ -16,11 +17,13 @@ import com.briup.pai.service.IRolePermissionService;
 import com.briup.pai.service.IRoleService;
 import com.briup.pai.service.IUserRoleService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.*;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@CacheConfig(cacheNames = AuthConstant.USER_CACHE_PREFIX)
 public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements IRoleService {
 
     @Autowired
@@ -32,12 +35,19 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements IR
     private RoleConvert roleConvert;
 
     @Override
+    @Cacheable(key = "T(com.briup.pai.common.constant.CommonConstant).LIST_CACHE_PREFIX")
     public List<RoleQueryVO> getAllRoles() {
         // 查询所有角色并转换为查询视图对象列表
         return roleConvert.po2RoleQueryVOList(this.list());
     }
 
     @Override
+    @Caching(put = @CachePut(key = "#result.roleId"),
+            evict = {
+            @CacheEvict(key = "T(com.briup.pai.common.constant.CommonConstant).LIST_CACHE_PREFIX"),
+            @CacheEvict(cacheNames = AuthConstant.AUTH_CACHE_PREFIX,
+                            key = "T(com.briup.pai.common.constant.AuthConstant).GET_ALL_ROLES_CACHE_KEY")
+    })
     public RoleQueryVO addOrModifyRole(RoleSaveDTO roleSaveDTO) {
         Integer roleId = roleSaveDTO.getRoleId();
         Role role;
@@ -75,6 +85,7 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements IR
     }
 
     @Override
+    @Cacheable(key = "#roleId")
     public RoleQueryVO getRoleById(Integer roleId) {
         // 根据角色ID查询角色信息，如果不存在则抛出异常
         Role role = BriupAssert.requireNotNull(
@@ -88,6 +99,11 @@ public class RoleServiceImpl extends ServiceImpl<RoleMapper, Role> implements IR
     }
 
     @Override
+    @Caching(evict = {
+            @CacheEvict(key = "#roleId"),
+            @CacheEvict(key = "T(com.briup.pai.common.constant.CommonConstant).LIST_CACHE_PREFIX"),
+            @CacheEvict(cacheNames = AuthConstant.AUTH_CACHE_PREFIX, allEntries = true)
+    })
     public void removeRoleById(Integer roleId) {
         // 验证角色是否存在
         BriupAssert.requireNotNull(

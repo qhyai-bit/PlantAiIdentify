@@ -3,6 +3,7 @@ package com.briup.pai.service.impl;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.util.ObjectUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.briup.pai.common.constant.AuthConstant;
 import com.briup.pai.common.enums.PermissionTypeEnum;
 import com.briup.pai.common.enums.ResultCodeEnum;
 import com.briup.pai.common.exception.BriupAssert;
@@ -18,6 +19,9 @@ import com.briup.pai.entity.vo.MetaVO;
 import com.briup.pai.entity.vo.RouterVO;
 import com.briup.pai.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -25,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@CacheConfig(cacheNames = AuthConstant.PERMISSION_CACHE_PREFIX)
 public class AuthServiceImpl implements IAuthService {
     @Autowired
     private IRoleService roleService;
@@ -43,12 +48,14 @@ public class AuthServiceImpl implements IAuthService {
     private PermissionConvert permissionConvert;
 
     @Override
+    @Cacheable(key = "T(com.briup.pai.common.constant.AuthConstant).GET_ALL_ROLES_CACHE_KEY")
     public List<AssignRoleVO> getAllRoles() {
         // 查询所有角色并转换为AssignRoleVO列表返回
         return roleConvert.po2AssignRoleVOList(roleService.list());
     }
 
     @Override
+    @Cacheable(key = "T(com.briup.pai.common.constant.AuthConstant).USER_ROLE_CACHE_PREFIX + ':' + #userId")
     public List<Integer> getRoleIdsByUserId(Integer userId) {
         // 根据userId查询RoleId的list
         BriupAssert.requireNotNull(
@@ -66,6 +73,7 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Override
+    @CacheEvict(allEntries = true)
     public void assignRole(AssignRoleDTO dto) {
         // 参数校验
         Integer userId = dto.getUserId();
@@ -102,6 +110,7 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Override
+    @Cacheable(key = "T(com.briup.pai.common.constant.AuthConstant).GET_ALL_PERMISSION_CACHE_KEY")
     public List<AssignPermissionVO> getAllPermissions() {
         // 查询所有目录类型的权限，按排序字段升序排列
         LambdaQueryWrapper<Permission> permissionWrapper = new LambdaQueryWrapper<>();
@@ -142,6 +151,7 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Override
+    @Cacheable(key = "T(com.briup.pai.common.constant.AuthConstant).ROLE_PERMISSION_CACHE_PREFIX + ':' +#roleId")
     public List<Integer> getPermissionIdsByRoleId(Integer roleId) {
         // 根据角色ID获取该角色拥有的所有权限中，类型为按钮的权限ID列表
         BriupAssert.requireNotNull(
@@ -160,6 +170,7 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Override
+    @CacheEvict(allEntries = true)
     public void assignPermission(AssignPermissionDTO dto) {
         // 获取参数
         Integer roleId = dto.getRoleId();
@@ -196,6 +207,7 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Override
+    @Cacheable(key = "T(com.briup.pai.common.constant.AuthConstant).ROUTER_CACHE_PREFIX + ':' + #userId")
     public List<RouterVO> getRouter(Integer userId) {
         List<RouterVO> routerVOList = new ArrayList<>();
         // 获取用户拥有的角色ID列表
@@ -244,6 +256,7 @@ public class AuthServiceImpl implements IAuthService {
     }
 
     @Override
+    @Cacheable(key = "T(com.briup.pai.common.constant.AuthConstant).BUTTON_CACHE_PREFIX + ':' + #userId")
     public List<String> getUserButtonPermissionList(Integer userId) {
         List<String> permissionList = new ArrayList<>();
         // 获取当前登录用户的角色列表

@@ -3,6 +3,7 @@ package com.briup.pai.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.briup.pai.common.constant.AuthConstant;
 import com.briup.pai.common.enums.PermissionTypeEnum;
 import com.briup.pai.convert.PermissionConvert;
 import com.briup.pai.dao.PermissionMapper;
@@ -11,17 +12,21 @@ import com.briup.pai.entity.vo.PageVO;
 import com.briup.pai.entity.vo.PermissionPageVO;
 import com.briup.pai.service.IPermissionService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheConfig;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@CacheConfig(cacheNames = AuthConstant.ROLE_CACHE_PREFIX)
 public class PermissionServiceImpl extends ServiceImpl<PermissionMapper, Permission> implements IPermissionService {
 
     @Autowired
     private PermissionConvert permissionConvert;
 
     @Override
+    @Cacheable(key = "#pageNum + '_' + #pageSize")
     public PageVO<PermissionPageVO> getPermissionByPage(Long pageNum, Long pageSize) {
         // 分页查询权限数据，构建目录 -> 菜单 -> 按钮的层级结构
         Page<Permission> page = new Page<>(pageNum, pageSize);
